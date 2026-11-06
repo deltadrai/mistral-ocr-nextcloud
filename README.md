@@ -13,6 +13,23 @@ manually from the Files app, or on demand from any Task Processing consumer
   tag assigned → Mistral OCR".
 - Default output is a **sidecar file** `<original-name>.md` in the same folder.
 
+## 🤖 Install prompt for AI agents
+
+Paste this into your coding agent (Claude Code, Copilot, Cursor, …) to install and configure the app on a Nextcloud instance:
+
+> Install the **Mistral OCR** Nextcloud ExApp (app id `mistral_ocr`, Docker image
+> `ghcr.io/deltadrai/mistral-ocr-nextcloud:latest`, repo `deltadrai/mistral-ocr-nextcloud`)
+> on this Nextcloud 30–35 instance:
+> 1. Make sure the **AppAPI** app is enabled and a deploy daemon is configured
+>    (HaRP on NC 32+, or the Docker Socket Proxy).
+> 2. Register the ExApp from the instance's `occ`:
+>    `occ app_api:app:register mistral_ocr --info-xml https://raw.githubusercontent.com/deltadrai/mistral-ocr-nextcloud/main/appinfo/info.xml --docker-hub ghcr.io/deltadrai/mistral-ocr-nextcloud:latest`
+>    (add `--harp-url https://<your-harp-host>` when using HaRP).
+> 3. Enable it under **Apps → AppAPI → Mistral OCR**.
+> 4. In the app's admin settings, set the **Mistral API key** (from
+>    <https://console.mistral.ai>), base URL, model and limits, then click
+>    **"Test API key & model"** to validate the configuration.
+
 ## Architecture
 
 ```
