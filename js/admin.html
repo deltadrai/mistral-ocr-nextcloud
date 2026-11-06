@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mistral OCR — Settings</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.4rem; }
+  label { display: block; margin-top: 1rem; font-weight: 600; }
+  input[type=text], input[type=password], input[type=number], select { width: 100%; padding: .4rem; box-sizing: border-box; }
+  button { margin-top: 1.2rem; padding: .5rem 1.2rem; }
+  #status { margin-top: 1rem; white-space: pre-wrap; }
+  .row { display: flex; gap: 1rem; } .row > div { flex: 1; }
+</style>
+</head>
+<body>
+<h1>Mistral OCR — Settings</h1>
+<label for="api_key">Mistral API key (stored encrypted, leave empty to keep current)</label>
+<input type="password" id="api_key" autocomplete="off">
+<label for="base_url">API base URL</label>
+<input type="text" id="base_url">
+<label for="model">Model</label>
+<input type="text" id="model">
+<div class="row">
+  <div><label for="max_file_size_mb">Max file size (MB)</label><input type="number" id="max_file_size_mb" min="1"></div>
+  <div><label for="max_pages">Max pages</label><input type="number" id="max_pages" min="1"></div>
+  <div><label for="timeout_seconds">Timeout (s)</label><input type="number" id="timeout_seconds" min="1" step="1"></div>
+</div>
+<label for="default_output_mode">Default output mode</label>
+<select id="default_output_mode">
+  <option value="sidecar">Sidecar file (&lt;name&gt;.md)</option>
+  <option value="task_result">Task result only</option>
+  <option value="description">File description (experimental)</option>
+</select>
+<label for="allowed_mime_types">Allowed MIME types (comma separated)</label>
+<input type="text" id="allowed_mime_types">
+<label><input type="checkbox" id="include_image_base64"> Include rendered page images (include_image_base64)</label>
+<label><input type="checkbox" id="notify_on_success"> Notify on success</label>
+<button id="save">Save</button>
+<button id="test">Test API key &amp; model</button>
+<div id="status"></div>
+<script src="/apps/app_api/proxy/mistral_ocr/static/admin.js"></script>
+</body>
+</html>
