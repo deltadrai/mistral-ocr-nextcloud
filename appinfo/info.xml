@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>mistral_ocr</id>
+    <name>Mistral OCR</name>
+    <summary>Send files and images to the Mistral OCR API to extract machine-readable Markdown text</summary>
+    <description><![CDATA[Integrates the Mistral OCR API into Nextcloud:
+
+- Task Processing provider for `core:image2text:ocr` (usable from the Assistant app, Talk and any Task Processing consumer)
+- "Recognize text with Mistral OCR" file action in the Files app
+- Flow (workflow engine) operation for automatic OCR on file created / updated / tag assigned
+- Sidecar Markdown output (`<name>.md`), task-result output, or file description
+
+The Mistral API key is stored encrypted via the AppAPI secrets mechanism and is never
+logged or returned by API responses. An EU endpoint (`https://api.eu.mistral.ai`) is
+supported for data residency. See the README for the data-flow diagram and GDPR notes.]]></description>
+    <version>0.1.0</version>
+    <licence>AGPL-3.0-or-later</licence>
+    <author>Deltadrai</author>
+    <namespace>MistralOcr</namespace>
+    <category>
+        <category>files</category>
+        <category>integration</category>
+        <category>ai</category>
+    </category>
+    <website>https://github.com/deltadrai/mistral-ocr-nextcloud</website>
+    <bugs>https://github.com/deltadrai/mistral-ocr-nextcloud/issues</bugs>
+    <repository type="git">https://github.com/deltadrai/mistral-ocr-nextcloud</repository>
+    <dependencies>
+        <nextcloud min-version="30" max-version="35"/>
+        <backend>app_api</backend>
+    </dependencies>
+    <external-app>
+        <docker-install>
+            <registry>ghcr.io</registry>
+            <owner>deltadrai</owner>
+            <image>mistral-ocr-nextcloud</image>
+            <tag>latest</tag>
+        </docker-install>
+        <env>
+            <APP_PORT>9000</APP_PORT>
+        </env>
+    </external-app>
+</info>
