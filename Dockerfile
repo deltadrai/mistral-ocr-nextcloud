@@ -14,4 +14,4 @@ COPY appinfo/ /app/appinfo/
 
 EXPOSE 9000
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "9000"]
+CMD ["sh", "-c", "exec uvicorn src.main:app --host 0.0.0.0 --port \"${APP_PORT:-9000}\""]

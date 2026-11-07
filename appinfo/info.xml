@@ -37,8 +37,22 @@ supported for data residency. See the README for the data-flow diagram and GDPR 
             <image>mistral-ocr-nextcloud</image>
             <tag>latest</tag>
         </docker-install>
-        <env>
-            <APP_PORT>9000</APP_PORT>
-        </env>
+        <routes>
+            <route>
+                <url>^/api/v1/(ocr|flow|jobs|status|health).*$</url>
+                <verb>GET,POST</verb>
+                <access_level>1</access_level>
+            </route>
+            <route>
+                <url>^/api/v1/admin/.*$</url>
+                <verb>GET,POST</verb>
+                <access_level>2</access_level>
+            </route>
+            <route>
+                <url>^/admin$</url>
+                <verb>GET</verb>
+                <access_level>2</access_level>
+            </route>
+        </routes>
     </external-app>
 </info>
