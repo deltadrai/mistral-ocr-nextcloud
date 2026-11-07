@@ -33,8 +33,7 @@ supported for data residency. See the README for the data-flow diagram and GDPR 
     <external-app>
         <docker-install>
             <registry>ghcr.io</registry>
-            <owner>deltadrai</owner>
-            <image>mistral-ocr-nextcloud</image>
+            <image>deltadrai/mistral-ocr-nextcloud</image>
             <tag>latest</tag>
         </docker-install>
         <routes>
