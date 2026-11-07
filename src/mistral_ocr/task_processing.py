@@ -60,6 +60,8 @@ def _extract_file_id(task: dict[str, typing.Any]) -> int | None:
     if isinstance(inp, dict):
         for key in ("input", "fileId", "file_id", "id"):
             value = inp.get(key)
+            if isinstance(value, list) and value:
+                value = value[0]  # core:image2text:ocr sends ListOfFiles under "input"
             if isinstance(value, int):
                 return value
             if isinstance(value, str) and value.isdigit():
