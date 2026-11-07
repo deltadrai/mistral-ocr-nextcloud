@@ -41,17 +41,17 @@ supported for data residency. See the README for the data-flow diagram and GDPR 
             <route>
                 <url>^/api/v1/(ocr|flow|jobs|status|health).*$</url>
                 <verb>GET,POST</verb>
-                <access_level>1</access_level>
+                <access_level>USER</access_level>
             </route>
             <route>
                 <url>^/api/v1/admin/.*$</url>
                 <verb>GET,POST</verb>
-                <access_level>2</access_level>
+                <access_level>ADMIN</access_level>
             </route>
             <route>
                 <url>^/admin$</url>
                 <verb>GET</verb>
-                <access_level>2</access_level>
+                <access_level>ADMIN</access_level>
             </route>
         </routes>
     </external-app>
