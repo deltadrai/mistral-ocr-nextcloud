@@ -51,6 +51,7 @@ logger = logging.getLogger("mistral_ocr.main")
 
 APP_ID = "mistral_ocr"
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "js")
+IMG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img")
 
 app = FastAPI(title="Mistral OCR ExApp", version=__version__)
 
@@ -279,6 +280,14 @@ async def admin_page():
     if os.path.exists(index):
         return FileResponse(index)
     return JSONResponse({"detail": "admin page not found"}, status_code=404)
+
+
+@app.get("/img/app.svg")
+async def app_icon():
+    icon = os.path.join(IMG_DIR, "app.svg")
+    if os.path.exists(icon):
+        return FileResponse(icon, media_type="image/svg+xml")
+    return JSONResponse({"detail": "app icon not found"}, status_code=404)
 
 
 @app.get("/api/v1/health")

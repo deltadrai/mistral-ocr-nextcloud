@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src/ /app/src/
 COPY js/ /app/js/
+COPY img/ /app/img/
 COPY appinfo/ /app/appinfo/
 
 EXPOSE 9000
