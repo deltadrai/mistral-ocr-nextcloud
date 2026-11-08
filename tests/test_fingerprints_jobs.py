@@ -28,8 +28,9 @@ async def test_job_queue_enqueue_and_done(tmp_path):
     await queue.enqueue(job)
     got = await asyncio.wait_for(queue.get(), timeout=1)
     assert got.id == job.id
-    await queue.mark_done(got)
+    await queue.mark_done(got, result_path="/docs/report.md")
     assert queue.get_job(job.id).status == "done"
+    assert queue.get_job(job.id).result_path == "/docs/report.md"
     pending = [j for j in queue.list_jobs() if j.status == "pending"]
     assert pending == []
 

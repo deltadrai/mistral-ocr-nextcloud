@@ -46,6 +46,7 @@ class OcrJob:
     created_at: float = field(default_factory=time.time)
     status: str = "pending"
     error: str | None = None
+    result_path: str | None = None
 
     def to_dict(self) -> dict[str, typing.Any]:
         return asdict(self)
@@ -102,10 +103,11 @@ class JobQueue:
     async def get(self) -> OcrJob:
         return await self._queue.get()
 
-    async def mark_done(self, job: OcrJob, error: str | None = None) -> None:
+    async def mark_done(self, job: OcrJob, error: str | None = None, result_path: str | None = None) -> None:
         async with self._lock:
             job.status = "failed" if error else "done"
             job.error = error
+            job.result_path = result_path
             await self._persist()
 
     def get_job(self, job_id: str) -> OcrJob | None:

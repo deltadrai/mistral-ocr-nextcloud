@@ -50,7 +50,11 @@ class JobRunner:
                 nc = self._nc_factory()
                 service = self._service_factory(nc)
                 outcome = await service.process(job)
-                await self._queue.mark_done(job, error=outcome.error.user_message if outcome.error else None)
+                await self._queue.mark_done(
+                    job,
+                    error=outcome.error.user_message if outcome.error else None,
+                    result_path=outcome.sidecar_path,
+                )
             except asyncio.CancelledError:
                 raise
             except Exception as exc:  # noqa: BLE001
