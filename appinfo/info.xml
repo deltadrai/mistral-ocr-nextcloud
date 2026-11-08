@@ -4,20 +4,30 @@
     <id>mistral_ocr</id>
     <name>Mistral OCR</name>
     <summary>Send files and images to the Mistral OCR API to extract machine-readable Markdown text</summary>
-    <description><![CDATA[Integrates the Mistral OCR API into Nextcloud:
+    <description><![CDATA[Mistral OCR is an open-source (AGPL-3.0-or-later) Nextcloud ExApp by deltadrai and contributors. It sends your PDFs and images to the Mistral OCR API and turns them into machine-readable Markdown text.
+
+Features:
 
 - Task Processing provider for `core:image2text:ocr` (usable from the Assistant app, Talk and any Task Processing consumer)
 - "Recognize text with Mistral OCR" file action in the Files app
 - Flow (workflow engine) operation for automatic OCR on file created / updated / tag assigned
 - Sidecar Markdown output (`<name>.md`), task-result output, or file description
+- Persistent job queue with a fingerprint guard (unchanged files are not re-OCR'd)
+- EU endpoint (`https://api.eu.mistral.ai`) for data residency
 
 The Mistral API key is stored encrypted via the AppAPI secrets mechanism and is never
-logged or returned by API responses. An EU endpoint (`https://api.eu.mistral.ai`) is
-supported for data residency. See the README for the data-flow diagram and GDPR notes.]]></description>
+logged or returned by API responses. Source code, issue tracker and documentation:
+https://github.com/deltadrai/mistral-ocr-nextcloud]]></description>
     <version>0.1.0</version>
     <licence>AGPL-3.0-or-later</licence>
-    <author>Deltadrai</author>
+    <author homepage="https://github.com/deltadrai">Deltadrai</author>
+    <author>Markus Winter</author>
     <namespace>MistralOcr</namespace>
+    <documentation>
+        <user>https://github.com/deltadrai/mistral-ocr-nextcloud#usage</user>
+        <admin>https://github.com/deltadrai/mistral-ocr-nextcloud#installation--registration</admin>
+        <developer>https://github.com/deltadrai/mistral-ocr-nextcloud#development</developer>
+    </documentation>
     <category>
         <category>files</category>
         <category>integration</category>
@@ -51,6 +61,11 @@ supported for data residency. See the README for the data-flow diagram and GDPR 
                 <url>^/admin$</url>
                 <verb>GET</verb>
                 <access_level>ADMIN</access_level>
+            </route>
+            <route>
+                <url>^/img/.*$</url>
+                <verb>GET</verb>
+                <access_level>USER</access_level>
             </route>
         </routes>
     </external-app>
