@@ -126,7 +126,9 @@ async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
             FILE_ACTION_NAME,
             "Recognize text with Mistral OCR",
             "api/v1/ocr",
-            mime="file",
+            # The Files plugin matches mime entries as substrings of the node mime
+            # ("image/png".includes("image/")); "file" never matches a real file mime.
+            mime="image/,application/pdf",
         )
         await get_worker().start()
         return ""
