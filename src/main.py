@@ -32,7 +32,6 @@ from .mistral_ocr.config import (
     DEFAULT_MAX_PAGES,
     DEFAULT_MODEL,
     DEFAULT_TIMEOUT,
-    KEY_API_KEY,
     AppApiSettingsStore,
     AppSettings,
     MemorySettingsStore,
@@ -135,18 +134,16 @@ def build_settings_form() -> dict[str, typing.Any]:
         "section_type": "admin",
         "section_id": "declarative_settings",
         "title": "Mistral OCR",
-        "description": "Send files and images to the Mistral OCR API and store the result as Markdown.",
+        "description": (
+            "Send files and images to the Mistral OCR API and store the result as Markdown. "
+            "The Mistral API key is not managed here: AppAPI 34 stores declarative sensitive "
+            "fields encrypted without marking them sensitive, so the app cannot read them back. "
+            "Set the key on the app's own page (/exapps/mistral_ocr/admin) or with "
+            "occ app_api:app:config:set mistral_ocr mistral_ocr_api_key --value <key> --sensitive=1."
+        ),
         "doc_url": "https://github.com/deltadrai/mistral-ocr-nextcloud",
         "priority": 40,
         "fields": [
-            {
-                "id": KEY_API_KEY,
-                "title": "Mistral API key",
-                "type": "password",
-                "default": "",
-                "sensitive": True,
-                "description": "Stored encrypted by Nextcloud and never logged.",
-            },
             {
                 "id": "mistral_ocr_base_url",
                 "title": "API base URL",
