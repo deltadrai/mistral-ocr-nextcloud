@@ -113,12 +113,24 @@ def get_runner() -> JobRunner:
     return _runner
 
 
+FILE_ACTION_NAME = "mistral_ocr_recognize_text"
+
+
 async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
     get_store(nc)
     if enabled:
         await register_provider(nc)
+        # Files context-menu entry; NC's app_api-filesplugin calls
+        # /apps/app_api/proxy/mistral_ocr/<action_handler> when it is clicked.
+        await nc.ui.files_dropdown_menu.register_ex(
+            FILE_ACTION_NAME,
+            "Recognize text with Mistral OCR",
+            "api/v1/ocr",
+            mime="file",
+        )
         await get_worker().start()
         return ""
+    await nc.ui.files_dropdown_menu.unregister(FILE_ACTION_NAME)
     await unregister_provider(nc)
     await get_worker().stop()
     await get_runner().stop()
