@@ -1,5 +1,7 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Explicit scope keeps pytest-asyncio from warning on every run.
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["src"]
 

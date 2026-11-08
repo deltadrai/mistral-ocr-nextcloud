@@ -1,5 +1,8 @@
 # Mistral OCR for Nextcloud (ExApp)
 
+[![CI](https://github.com/deltadrai/mistral-ocr-nextcloud/actions/workflows/ci.yml/badge.svg)](https://github.com/deltadrai/mistral-ocr-nextcloud/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/deltadrai/mistral-ocr-nextcloud?sort=semver)](https://github.com/deltadrai/mistral-ocr-nextcloud/releases)
+
 A Nextcloud **External App (ExApp)** that sends files and images to the
 [Mistral OCR API](https://docs.mistral.ai/capabilities/document/) and turns them
 into machine-readable **Markdown** — automatically via the workflow engine, or
@@ -85,6 +88,11 @@ occ app_api:app:register mistral_ocr \
 If no Deploy Daemon is configured, registration fails with a clear message from
 AppAPI — install HaRP or the Docker Socket Proxy first.
 
+`appinfo/info.xml` pins `<image-tag>` to the released version (the app store
+rejects floating tags). `:latest` tracks `main`; for production pin the release
+tag explicitly, e.g.
+`--docker-hub ghcr.io/deltadrai/mistral-ocr-nextcloud:0.1.18`.
+
 After registration:
 
 1. Enable the app in **Apps → AppAPI → Mistral OCR** (`PUT /enabled` runs
@@ -163,12 +171,57 @@ Mistral OCR returns text, not PDFs. For searchable PDFs use
 make install-dev
 make test       # pytest (Mistral client mocked, no network)
 make lint       # ruff check + format
+make validate   # appinfo/info.xml against the Nextcloud App Store schema
+make check      # everything CI runs: lint, tests, manifest, JS bundle
+make js-build   # rebundle js/src/files_action.js -> js/files_action.js
 make docker-build
+make smoke      # run the image and probe /api/v1/health
 ```
 
-CI (`.github/workflows/ci.yml`) runs lint + tests and builds the Docker image.
-Integration tests against a real API key can be added by setting
-`MISTRAL_API_KEY` in CI secrets.
+CI (`.github/workflows/ci.yml`) runs lint, tests, the manifest schema check and
+the JS bundle check, then builds the image, smoke-tests it and — on `main` and
+on `v*` tags — pushes it to GHCR. Integration tests against a real API key can
+be added by setting `MISTRAL_API_KEY` in CI secrets.
+
+The app-store schema used by `make validate` is vendored in `scripts/schema/`;
+refresh it with `make update-schema`.
+
+## Releases
+
+Versioning is [Semantic Versioning](https://semver.org/). The version is the
+single source of truth in `appinfo/info.xml` and is mirrored into
+`package.json`, `src/mistral_ocr/__init__.py` and `CHANGELOG.md` — never edit
+those by hand, bump them together:
+
+```bash
+make release VERSION=0.2.0     # rewrites all four files
+# edit CHANGELOG.md: move the Unreleased entries under the new heading
+git commit -am 'chore(release): v0.2.0'
+git tag v0.2.0 && git push && git push --tags
+```
+
+Pushing the tag makes CI:
+
+1. re-run lint, tests, the manifest schema check and the JS bundle check,
+2. fail if the tag does not match `<version>` in `appinfo/info.xml`,
+3. build and push `ghcr.io/deltadrai/mistral-ocr-nextcloud:0.2.0` (multi-arch:
+   `linux/amd64` and `linux/arm64`) plus `:sha-<commit>`,
+4. publish a GitHub release whose notes are the tag's `CHANGELOG.md` section.
+
+`:latest` is only moved by pushes to `main`, so tagging an older release never
+rolls it backwards.
+
+The app store requires `<image-tag>` to match `<version>`, so the manifest
+always pins the released tag instead of `latest`. `tests/test_release_metadata.py`
+fails the build if any of those versions drift apart.
+
+Release checklist:
+
+- [ ] `make check` is green
+- [ ] `CHANGELOG.md` describes the release under the new version
+- [ ] `make release VERSION=x.y.z` ran and the diff looks right
+- [ ] `make smoke` boots the image and answers `/api/v1/health`
+- [ ] tag pushed, CI green, GHCR image and GitHub release published
 
 ## Assumptions (from the open questions in the spec)
 

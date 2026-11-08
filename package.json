@@ -1,6 +1,6 @@
 {
   "name": "mistral-ocr-nextcloud",
-  "version": "0.1.0",
+  "version": "0.1.18",
   "private": true,
   "description": "Build tooling for the ExApp's Files-page script (AppAPI injects classic scripts).",
   "scripts": {

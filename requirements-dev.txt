@@ -1,4 +1,9 @@
-pytest>=8.0
-pytest-asyncio>=0.23
-respx>=0.21
-ruff>=0.6
+-r requirements.txt
+
+# Test and lint tooling. Also pinned so CI and local runs agree.
+pytest==9.2.0
+pytest-asyncio==1.4.1.post1
+respx==0.23.1
+ruff==0.17.4
+# Used by scripts/validate_info_xml.py to reproduce the app-store schema check.
+lxml==6.1.3

@@ -18,7 +18,7 @@ Features:
 The Mistral API key is stored encrypted via the AppAPI secrets mechanism and is never
 logged or returned by API responses. Source code, issue tracker and documentation:
 https://github.com/deltadrai/mistral-ocr-nextcloud]]></description>
-    <version>0.1.0</version>
+    <version>0.1.18</version>
     <licence>AGPL-3.0-or-later</licence>
     <author homepage="https://github.com/deltadrai">Deltadrai</author>
     <author>Markus Winter</author>
@@ -28,23 +28,23 @@ https://github.com/deltadrai/mistral-ocr-nextcloud]]></description>
         <admin>https://github.com/deltadrai/mistral-ocr-nextcloud#installation--registration</admin>
         <developer>https://github.com/deltadrai/mistral-ocr-nextcloud#development</developer>
     </documentation>
-    <category>
-        <category>files</category>
-        <category>integration</category>
-        <category>ai</category>
-    </category>
+    <category>files</category>
+    <category>integration</category>
+    <category>ai</category>
     <website>https://github.com/deltadrai/mistral-ocr-nextcloud</website>
     <bugs>https://github.com/deltadrai/mistral-ocr-nextcloud/issues</bugs>
     <repository type="git">https://github.com/deltadrai/mistral-ocr-nextcloud</repository>
     <dependencies>
+        <!-- AppAPI identifies ExApps by the presence of <external-app>; a <backend> element
+             is only valid for CalDAV backends and fails app-store schema validation. -->
         <nextcloud min-version="30" max-version="35"/>
-        <backend>app_api</backend>
     </dependencies>
     <external-app>
         <docker-install>
             <registry>ghcr.io</registry>
             <image>deltadrai/mistral-ocr-nextcloud</image>
-            <tag>latest</tag>
+            <!-- Pinned to <version>; the app store refuses floating tags. -->
+            <image-tag>0.1.18</image-tag>
         </docker-install>
         <routes>
             <route>
