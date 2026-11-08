@@ -124,7 +124,7 @@ async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
         # /apps/app_api/proxy/mistral_ocr/<action_handler> when it is clicked.
         await nc.ui.files_dropdown_menu.register_ex(
             FILE_ACTION_NAME,
-            "Recognize text with Mistral OCR",
+            "OCR with Mistral",
             "api/v1/ocr",
             # The Files plugin matches mime entries as substrings of the node mime
             # ("image/png".includes("image/")); "file" never matches a real file mime.
