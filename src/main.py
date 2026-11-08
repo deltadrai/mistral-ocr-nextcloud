@@ -242,7 +242,7 @@ async def manual_ocr(payload: OcrRequest, nc: typing.Annotated[AsyncNextcloudApp
     settings = await store.load_settings()
     job = OcrJob(
         file_id=payload.fileId,
-        user_id=nc.user,
+        user_id=await nc.user,  # async SDK: nc.user is a coroutine
         trigger=TRIGGER_MANUAL,
         output_mode=payload.output_mode or settings.default_output_mode,
         force=payload.force,
