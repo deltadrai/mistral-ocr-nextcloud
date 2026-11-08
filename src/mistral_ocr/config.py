@@ -38,6 +38,21 @@ DEFAULT_ALLOWED_MIME_TYPES = sorted(SUPPORTED_MIME_TYPES)
 DEFAULT_MAX_FILE_SIZE_MB = 50
 DEFAULT_MAX_PAGES = 100
 
+# Nextcloud's admin settings form (declarative settings, registered by the ExApp)
+# stores every field as its own ExApp appconfig key. The ids below are therefore
+# also the config keys, so the NC admin form and the ExApp's own admin API share
+# one store. `mistral_ocr_api_key` is handled separately (sensitive=True).
+SETTINGS_FIELDS: dict[str, str] = {
+    "mistral_ocr_base_url": "base_url",
+    "mistral_ocr_model": "model",
+    "mistral_ocr_max_file_size_mb": "max_file_size_mb",
+    "mistral_ocr_max_pages": "max_pages",
+    "mistral_ocr_default_output_mode": "default_output_mode",
+    "mistral_ocr_include_image_base64": "include_image_base64",
+    "mistral_ocr_timeout_seconds": "timeout_seconds",
+    "mistral_ocr_notify_on_success": "notify_on_success",
+}
+
 
 class AppSettings(BaseModel):
     """User-facing admin settings (the API key itself is stored separately, encrypted)."""
@@ -120,6 +135,32 @@ class MemorySettingsStore:
         self._api_key = api_key
 
 
+def _coerce(value: typing.Any, default: typing.Any) -> typing.Any:
+    """appconfig values are strings; convert them to the default's type."""
+    if isinstance(default, bool):
+        return str(value).strip().lower() in ("1", "true", "yes", "on")
+    if isinstance(default, int) and not isinstance(default, bool):
+        return int(float(value))
+    if isinstance(default, float):
+        return float(value)
+    if isinstance(default, list) and isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else default
+        except ValueError:
+            return default
+    return value
+
+
+def _serialize(value: typing.Any) -> str:
+    """Inverse of _coerce: appconfig values are stored as strings."""
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    if isinstance(value, (list, dict)):
+        return json.dumps(value)
+    return str(value)
+
+
 class AppApiSettingsStore:
     """Persists settings through the AppAPI app-config endpoints of a Nextcloud connection.
 
@@ -131,17 +172,32 @@ class AppApiSettingsStore:
         self._nc = nc
 
     async def load_settings(self) -> AppSettings:
+        data: dict[str, typing.Any] = {}
+        # Legacy: settings saved as one JSON blob by older ExApp versions.
         raw = await self._nc.appconfig_ex.get_value(KEY_SETTINGS)
-        if not raw:
-            return AppSettings()
+        if raw:
+            try:
+                data.update(json.loads(raw))
+            except (ValueError, TypeError) as exc:
+                logger.warning("Stored settings blob is unreadable, ignoring it: %s", exc)
+        # Current: one appconfig key per field (written by the NC admin form and by
+        # this app's own admin API alike).
+        defaults = AppSettings()
+        for key, attr in SETTINGS_FIELDS.items():
+            value = await self._nc.appconfig_ex.get_value(key)
+            if value is None or value == "":
+                continue
+            data[attr] = _coerce(value, getattr(defaults, attr))
         try:
-            return AppSettings.from_dict(json.loads(raw))
+            return AppSettings.from_dict(data)
         except (ValueError, TypeError) as exc:
             logger.warning("Stored settings are unreadable, falling back to defaults: %s", exc)
             return AppSettings()
 
     async def save_settings(self, settings: AppSettings) -> None:
-        await self._nc.appconfig_ex.set_value(KEY_SETTINGS, json.dumps(settings.to_public_dict()), sensitive=False)
+        public = settings.to_public_dict()
+        for key, attr in SETTINGS_FIELDS.items():
+            await self._nc.appconfig_ex.set_value(key, _serialize(public[attr]), sensitive=False)
 
     async def get_api_key(self) -> str:
         return await self._nc.appconfig_ex.get_value(KEY_API_KEY) or ""

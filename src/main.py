@@ -27,6 +27,12 @@ from pydantic import BaseModel, Field
 
 from .mistral_ocr import __version__
 from .mistral_ocr.config import (
+    DEFAULT_BASE_URL,
+    DEFAULT_MAX_FILE_SIZE_MB,
+    DEFAULT_MAX_PAGES,
+    DEFAULT_MODEL,
+    DEFAULT_TIMEOUT,
+    KEY_API_KEY,
     AppApiSettingsStore,
     AppSettings,
     MemorySettingsStore,
@@ -115,6 +121,90 @@ def get_runner() -> JobRunner:
 
 
 FILE_ACTION_NAME = "mistral_ocr_recognize_text"
+SETTINGS_FORM_ID = "mistral_ocr_admin"
+
+
+def build_settings_form() -> dict[str, typing.Any]:
+    """Nextcloud admin settings form (declarative settings).
+
+    Field ids are the ExApp appconfig keys (see config.SETTINGS_FIELDS), so what the
+    admin saves in Nextcloud is exactly what the app reads.
+    """
+    return {
+        "id": SETTINGS_FORM_ID,
+        "section_type": "admin",
+        "section_id": "declarative_settings",
+        "title": "Mistral OCR",
+        "description": "Send files and images to the Mistral OCR API and store the result as Markdown.",
+        "doc_url": "https://github.com/deltadrai/mistral-ocr-nextcloud",
+        "priority": 40,
+        "fields": [
+            {
+                "id": KEY_API_KEY,
+                "title": "Mistral API key",
+                "type": "password",
+                "default": "",
+                "sensitive": True,
+                "description": "Stored encrypted by Nextcloud and never logged.",
+            },
+            {
+                "id": "mistral_ocr_base_url",
+                "title": "API base URL",
+                "type": "url",
+                "default": DEFAULT_BASE_URL,
+                "placeholder": DEFAULT_BASE_URL,
+                "description": "Use https://api.eu.mistral.ai for EU data residency.",
+            },
+            {
+                "id": "mistral_ocr_model",
+                "title": "OCR model",
+                "type": "text",
+                "default": DEFAULT_MODEL,
+                "placeholder": DEFAULT_MODEL,
+            },
+            {
+                "id": "mistral_ocr_max_file_size_mb",
+                "title": "Maximum file size (MB)",
+                "type": "number",
+                "default": DEFAULT_MAX_FILE_SIZE_MB,
+            },
+            {
+                "id": "mistral_ocr_max_pages",
+                "title": "Maximum pages per document",
+                "type": "number",
+                "default": DEFAULT_MAX_PAGES,
+            },
+            {
+                "id": "mistral_ocr_default_output_mode",
+                "title": "Where the result goes",
+                "type": "select",
+                "default": "sidecar",
+                "options": [
+                    {"name": "Markdown file next to the source", "value": "sidecar"},
+                    {"name": "File description", "value": "description"},
+                    {"name": "Task result only", "value": "task_result"},
+                ],
+            },
+            {
+                "id": "mistral_ocr_include_image_base64",
+                "title": "Include page images in the result",
+                "type": "checkbox",
+                "default": False,
+            },
+            {
+                "id": "mistral_ocr_timeout_seconds",
+                "title": "Request timeout (seconds)",
+                "type": "number",
+                "default": int(DEFAULT_TIMEOUT),
+            },
+            {
+                "id": "mistral_ocr_notify_on_success",
+                "title": "Send a notification when OCR finishes",
+                "type": "checkbox",
+                "default": False,
+            },
+        ],
+    }
 
 
 async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
@@ -131,9 +221,11 @@ async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
             # ("image/png".includes("image/")); "file" never matches a real file mime.
             mime="image/,application/pdf",
         )
+        await nc.ui.settings.register_form(build_settings_form())
         await get_worker().start()
         return ""
     await nc.ui.files_dropdown_menu.unregister(FILE_ACTION_NAME)
+    await nc.ui.settings.unregister_form(SETTINGS_FORM_ID)
     await unregister_provider(nc)
     await get_worker().stop()
     await get_runner().stop()
