@@ -398,6 +398,15 @@ async def admin_page():
     return JSONResponse({"detail": "admin page not found"}, status_code=404)
 
 
+@app.get("/js/files_action.js")
+async def files_action_script():
+    """The Files-page script AppAPI injects via ui/script (served through the AppAPI proxy)."""
+    script = os.path.join(STATIC_DIR, "files_action.js")
+    if os.path.exists(script):
+        return FileResponse(script, media_type="application/javascript")
+    return JSONResponse({"detail": "script not found"}, status_code=404)
+
+
 @app.get("/img/app.svg")
 async def app_icon():
     icon = os.path.join(IMG_DIR, "app.svg")
