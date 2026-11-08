@@ -65,6 +65,13 @@ class OcrService:
             if node is None:
                 raise FileNotFoundError_(f"File id {job.file_id} not found")
             mime_type = getattr(node, "mime_type", None) or getattr(node, "mimetype", "") or ""
+            if not mime_type:
+                # nc_py_api's files.by_id uses a WebDAV SEARCH whose response often
+                # omits d:getcontenttype; fall back to the file name extension.
+                import mimetypes
+
+                name = getattr(node, "name", "") or ""
+                mime_type = mimetypes.guess_type(name)[0] or ""
             if not settings.is_mime_allowed(mime_type):
                 raise MimeTypeNotAllowedError(f"MIME type {mime_type} is not allowed")
             size = int(getattr(node, "size", 0) or 0)
