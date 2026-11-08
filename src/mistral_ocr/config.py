@@ -130,8 +130,8 @@ class AppApiSettingsStore:
     def __init__(self, nc: typing.Any):
         self._nc = nc
 
-    def load_settings(self) -> AppSettings:
-        raw = self._nc.appconfig_ex.get_value(KEY_SETTINGS)
+    async def load_settings(self) -> AppSettings:
+        raw = await self._nc.appconfig_ex.get_value(KEY_SETTINGS)
         if not raw:
             return AppSettings()
         try:
@@ -140,11 +140,11 @@ class AppApiSettingsStore:
             logger.warning("Stored settings are unreadable, falling back to defaults: %s", exc)
             return AppSettings()
 
-    def save_settings(self, settings: AppSettings) -> None:
-        self._nc.appconfig_ex.set_value(KEY_SETTINGS, json.dumps(settings.to_public_dict()), sensitive=False)
+    async def save_settings(self, settings: AppSettings) -> None:
+        await self._nc.appconfig_ex.set_value(KEY_SETTINGS, json.dumps(settings.to_public_dict()), sensitive=False)
 
-    def get_api_key(self) -> str:
-        return self._nc.appconfig_ex.get_value(KEY_API_KEY) or ""
+    async def get_api_key(self) -> str:
+        return await self._nc.appconfig_ex.get_value(KEY_API_KEY) or ""
 
-    def set_api_key(self, api_key: str) -> None:
-        self._nc.appconfig_ex.set_value(KEY_API_KEY, api_key, sensitive=True)
+    async def set_api_key(self, api_key: str) -> None:
+        await self._nc.appconfig_ex.set_value(KEY_API_KEY, api_key, sensitive=True)

@@ -172,13 +172,13 @@ class FlowEvent(BaseModel):
 @app.get("/api/v1/status")
 async def status(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     store = get_store(nc)
-    settings = store.load_settings()
+    settings = await store.load_settings()
     return {
         "app": APP_ID,
         "version": __version__,
         "provider": PROVIDER_ID,
         "taskType": TASK_TYPE_OCR,
-        "configured": bool(store.get_api_key()),
+        "configured": bool(await store.get_api_key()),
         "model": settings.model,
         "baseUrl": settings.base_url,
         "pendingJobs": len([j for j in get_queue().list_jobs() if j.status == "pending"]),
@@ -188,30 +188,31 @@ async def status(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
 @app.get("/api/v1/admin/settings")
 async def get_settings(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     store = get_store(nc)
-    return {"settings": store.load_settings().to_public_dict(), "apiKeyConfigured": bool(store.get_api_key())}
+    settings = await store.load_settings()
+    return {"settings": settings.to_public_dict(), "apiKeyConfigured": bool(await store.get_api_key())}
 
 
 @app.post("/api/v1/admin/settings")
 async def update_settings(payload: SettingsUpdate, nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     store = get_store(nc)
-    current = store.load_settings()
+    current = await store.load_settings()
     updates = payload.model_dump(exclude_unset=True)
     api_key = updates.pop("api_key", None)
     try:
         new_settings = AppSettings.from_dict({**current.to_public_dict(), **updates})
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    store.save_settings(new_settings)
+    await store.save_settings(new_settings)
     if api_key is not None:
-        store.set_api_key(api_key.strip())
-    return {"settings": new_settings.to_public_dict(), "apiKeyConfigured": bool(store.get_api_key())}
+        await store.set_api_key(api_key.strip())
+    return {"settings": new_settings.to_public_dict(), "apiKeyConfigured": bool(await store.get_api_key())}
 
 
 @app.post("/api/v1/admin/test-connection")
 async def test_connection(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     store = get_store(nc)
-    settings = store.load_settings()
-    api_key = store.get_api_key()
+    settings = await store.load_settings()
+    api_key = await store.get_api_key()
     if not api_key:
         raise HTTPException(status_code=400, detail=MissingApiKeyError().user_message)
     client = make_client(settings, api_key)
@@ -226,7 +227,7 @@ async def test_connection(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_ap
 @app.post("/api/v1/ocr", status_code=202)
 async def manual_ocr(payload: OcrRequest, nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     store = get_store(nc)
-    settings = store.load_settings()
+    settings = await store.load_settings()
     job = OcrJob(
         file_id=payload.fileId,
         user_id=nc.user,
@@ -242,7 +243,7 @@ async def manual_ocr(payload: OcrRequest, nc: typing.Annotated[AsyncNextcloudApp
 @app.post("/api/v1/flow/event", status_code=202)
 async def flow_event(event: FlowEvent, nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     store = get_store(nc)
-    settings = store.load_settings()
+    settings = await store.load_settings()
     job = OcrJob(
         file_id=event.file_id,
         user_id=event.user_id,

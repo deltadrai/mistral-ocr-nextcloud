@@ -41,8 +41,8 @@ class OcrOutcome(typing.NamedTuple):
 class OcrService:
     def __init__(
         self,
-        settings_provider: typing.Callable[[], AppSettings],
-        api_key_provider: typing.Callable[[], str],
+        settings_provider: typing.Callable[[], typing.Awaitable[AppSettings]],
+        api_key_provider: typing.Callable[[], typing.Awaitable[str]],
         client_factory: typing.Callable[[AppSettings, str], MistralOcrClient],
         nc: typing.Any,
         fingerprints: FingerprintStore | MemoryFingerprintStore,
@@ -54,8 +54,8 @@ class OcrService:
         self._fingerprints = fingerprints
 
     async def process(self, job: OcrJob) -> OcrOutcome:
-        settings = self._settings_provider()
-        api_key = self._api_key_provider()
+        settings = await self._settings_provider()
+        api_key = await self._api_key_provider()
         if not api_key:
             err = MissingApiKeyError()
             await self._notify_failure(job, err)
