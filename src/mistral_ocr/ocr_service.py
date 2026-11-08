@@ -66,6 +66,9 @@ class OcrService:
             await self._notify_failure(job, err)
             return OcrOutcome(job, None, None, False, err)
         try:
+            # The runner uses a userless nc factory; set the job's user before any
+            # NC call, otherwise files.by_id runs as "" and NC answers 401.
+            await self._nc.set_user(job.user_id)
             node = await self._nc.files.by_id(job.file_id)
             if node is None:
                 raise FileNotFoundError_(f"File id {job.file_id} not found")
