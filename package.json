@@ -1,0 +1,15 @@
+{
+  "name": "mistral-ocr-nextcloud",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Build tooling for the ExApp's Files-page script (AppAPI injects classic scripts).",
+  "scripts": {
+    "build": "esbuild js/src/files_action.js --bundle --format=iife --target=es2020 --minify --outfile=js/files_action.js",
+    "check": "npm run build && git diff --exit-code js/files_action.js"
+  },
+  "devDependencies": {
+    "@nextcloud/router": "^3.2.0",
+    "esbuild": "0.25.10",
+    "toastify-js": "^1.12.0"
+  }
+}

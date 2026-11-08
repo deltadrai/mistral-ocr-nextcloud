@@ -9,3 +9,4 @@ build/
 *.egg-info/
 .data/
 .env
+node_modules/

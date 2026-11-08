@@ -219,10 +219,13 @@ async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
             mime="image/,application/pdf",
         )
         await nc.ui.settings.register_form(build_settings_form())
+        # AppAPI injects this into the Files page as a classic script (bundled IIFE).
+        await nc.ui.resources.set_script("files", "files_action", "js/files_action")
         await get_worker().start()
         return ""
     await nc.ui.files_dropdown_menu.unregister(FILE_ACTION_NAME)
     await nc.ui.settings.unregister_form(SETTINGS_FORM_ID)
+    await nc.ui.resources.delete_script("files", "files_action", "js/files_action")
     await unregister_provider(nc)
     await get_worker().stop()
     await get_runner().stop()
@@ -378,8 +381,13 @@ async def flow_event(event: FlowEvent, nc: typing.Annotated[AsyncNextcloudApp, D
 
 
 @app.get("/api/v1/jobs")
-async def list_jobs(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
-    return {"jobs": [j.to_dict() for j in get_queue().list_jobs()]}
+async def list_jobs(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)], mine: bool = False):
+    """Job list. ``mine=1`` returns only the calling user's jobs (used by the Files UI)."""
+    jobs = get_queue().list_jobs()
+    if mine:
+        user = await nc.user
+        jobs = [j for j in jobs if j.user_id == user]
+    return {"jobs": [j.to_dict() for j in jobs]}
 
 
 @app.get("/admin")
