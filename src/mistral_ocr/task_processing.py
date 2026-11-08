@@ -153,5 +153,5 @@ class TaskProcessingWorker:
             )
         else:
             await nc.providers.task_processing.report_result(
-                task_id, output={"output": outcome.result.markdown if outcome.result else ""}
+                task_id, output={"output": [outcome.result.markdown] if outcome.result else []}
             )
