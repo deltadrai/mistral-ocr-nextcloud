@@ -7,6 +7,7 @@ The Nextcloud side is accessed through a minimal structural interface
 
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 import typing
@@ -41,8 +42,8 @@ class OcrOutcome(typing.NamedTuple):
 class OcrService:
     def __init__(
         self,
-        settings_provider: typing.Callable[[], typing.Awaitable[AppSettings]],
-        api_key_provider: typing.Callable[[], typing.Awaitable[str]],
+        settings_provider: typing.Callable[[], typing.Any],
+        api_key_provider: typing.Callable[[], typing.Any],
         client_factory: typing.Callable[[AppSettings, str], MistralOcrClient],
         nc: typing.Any,
         fingerprints: FingerprintStore | MemoryFingerprintStore,
@@ -54,8 +55,12 @@ class OcrService:
         self._fingerprints = fingerprints
 
     async def process(self, job: OcrJob) -> OcrOutcome:
-        settings = await self._settings_provider()
-        api_key = await self._api_key_provider()
+        settings = self._settings_provider()
+        if inspect.isawaitable(settings):
+            settings = await settings
+        api_key = self._api_key_provider()
+        if inspect.isawaitable(api_key):
+            api_key = await api_key
         if not api_key:
             err = MissingApiKeyError()
             await self._notify_failure(job, err)
