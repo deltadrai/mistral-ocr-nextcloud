@@ -257,7 +257,14 @@ class SettingsUpdate(BaseModel):
 
 
 class OcrRequest(BaseModel):
-    fileId: int
+    """Body of the Files action.
+
+    `exec` posts one file object; `execBatch` posts ``{"files": [...]}``. Both must be
+    accepted — rejecting the batch shape made every list-view click fail with 422.
+    """
+
+    fileId: int | None = None
+    files: list[dict[str, typing.Any]] | None = None
     force: bool = False
     pages: list[int] | None = None
     output_mode: str | None = None
@@ -332,16 +339,26 @@ async def test_connection(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_ap
 async def manual_ocr(payload: OcrRequest, nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     store = get_store(nc)
     settings = await store.load_settings()
-    job = OcrJob(
-        file_id=payload.fileId,
-        user_id=await nc.user,  # async SDK: nc.user is a coroutine
-        trigger=TRIGGER_MANUAL,
-        output_mode=payload.output_mode or settings.default_output_mode,
-        force=payload.force,
-        pages=payload.pages,
-    )
-    await get_queue().enqueue(job)
-    return {"jobId": job.id, "status": "queued"}
+    user = await nc.user  # async SDK: nc.user is a coroutine
+    entries = payload.files if payload.files else [payload.model_dump()]
+    job_ids: list[str] = []
+    for entry in entries:
+        raw_id = entry.get("fileId")
+        try:
+            file_id = int(raw_id)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail=f"Missing or invalid fileId: {raw_id!r}") from None
+        job = OcrJob(
+            file_id=file_id,
+            user_id=user,
+            trigger=TRIGGER_MANUAL,
+            output_mode=entry.get("output_mode") or settings.default_output_mode,
+            force=bool(entry.get("force")),
+            pages=entry.get("pages"),
+        )
+        await get_queue().enqueue(job)
+        job_ids.append(job.id)
+    return {"jobId": job_ids[0] if job_ids else None, "jobIds": job_ids, "status": "queued"}
 
 
 @app.post("/api/v1/flow/event", status_code=202)
