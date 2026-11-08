@@ -39,6 +39,21 @@ class OcrOutcome(typing.NamedTuple):
     error: MistralOcrError | None
 
 
+def _node_user_path(node: typing.Any) -> str:
+    """Path of a file relative to the user's root, as the DAV layer reports it.
+
+    ``nc_py_api``'s ``FsNode`` exposes ``user_path``/``full_path`` but **no** ``path``
+    (that attribute belongs to ``Share``), so reading ``node.path`` silently yields ""
+    and a sidecar would be written to the user's root instead of next to the source —
+    which is what happened for files in group folders and subfolders.
+    """
+    for attr in ("user_path", "full_path", "path"):
+        value = getattr(node, attr, "")
+        if isinstance(value, str) and value.strip():
+            return value if value.startswith("/") else f"/{value}"
+    return ""
+
+
 class OcrService:
     def __init__(
         self,
@@ -123,7 +138,7 @@ class OcrService:
 
     async def _write_sidecar(self, node: typing.Any, result: OcrResult) -> str:
         name = getattr(node, "name", "file")
-        parent = os.path.dirname(getattr(node, "path", "") or f"/{name}")
+        parent = os.path.dirname(_node_user_path(node) or f"/{name}")
         sidecar_name = f"{os.path.splitext(name)[0]}.md"
         target = f"{parent.rstrip('/')}/{sidecar_name}" if parent else f"/{sidecar_name}"
         await self._nc.files.upload(target, result.markdown.encode("utf-8"))
