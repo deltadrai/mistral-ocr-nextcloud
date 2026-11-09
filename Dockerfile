@@ -36,9 +36,10 @@ COPY LICENSE /app/LICENSE
 
 EXPOSE 9000
 
-# AppAPI assigns APP_PORT; the health endpoint does not need Nextcloud credentials,
-# so it also works while the ExApp is still being registered.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD python -c "import os,sys,urllib.request; url='http://127.0.0.1:%s/api/v1/health' % os.environ.get('APP_PORT','9000'); sys.exit(0 if urllib.request.urlopen(url, timeout=4).status == 200 else 1)"
+# No HEALTHCHECK instruction on purpose. CI publishes OCI media types, which have
+# no HEALTHCHECK field, so the directive would be silently dropped. It is also not
+# needed: AppAPI polls /heartbeat itself, treats a healthcheck-less container as
+# healthy, and would otherwise wait up to 15 min for "healthy" during registration.
+# /api/v1/health stays for the CI smoke test and for manual checks.
 
 CMD ["sh", "-c", "exec uvicorn src.main:app --host 0.0.0.0 --port \"${APP_PORT:-9000}\""]

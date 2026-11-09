@@ -9,7 +9,7 @@
 Features:
 
 - Task Processing provider for `core:image2text:ocr` (usable from the Assistant app, Talk and any Task Processing consumer)
-- "Recognize text with Mistral OCR" file action in the Files app
+- "OCR with Mistral" file action in the Files app
 - Flow (workflow engine) operation for automatic OCR on file created / updated / tag assigned
 - Sidecar Markdown output (`<name>.md`), task-result output, or file description
 - Persistent job queue with a fingerprint guard (unchanged files are not re-OCR'd)

@@ -55,6 +55,10 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 logger = logging.getLogger("mistral_ocr.main")
 
 APP_ID = "mistral_ocr"
+# Browser path of this app's own settings page, relative to the Nextcloud web root.
+# AppAPI serves ExApp pages through its proxy; there is no /exapps/<id>/ route an
+# admin can browse to, and the AppAPI admin UI has no link to an ExApp's page.
+ADMIN_PAGE_PATH = "apps/app_api/proxy/mistral_ocr/admin"
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "js")
 IMG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img")
 
@@ -136,10 +140,12 @@ def build_settings_form() -> dict[str, typing.Any]:
         "title": "Mistral OCR",
         "description": (
             "Send files and images to the Mistral OCR API and store the result as Markdown. "
-            "The Mistral API key is not managed here: AppAPI 34 stores declarative sensitive "
-            "fields encrypted without marking them sensitive, so the app cannot read them back. "
-            "Set the key on the app's own page (/exapps/mistral_ocr/admin) or with "
-            "occ app_api:app:config:set mistral_ocr mistral_ocr_api_key --value <key> --sensitive=1."
+            "Everything below works from this form. The API key is the exception: AppAPI stores "
+            "declarative sensitive fields encrypted without marking them sensitive, so this app "
+            "cannot read the key back. Set it once either on the app's own settings page — "
+            f"{ADMIN_PAGE_PATH} under your Nextcloud address, administrators only — or on the "
+            "command line with: occ app_api:app:config:set mistral_ocr mistral_ocr_api_key "
+            "--value <key> --sensitive=1"
         ),
         "doc_url": "https://github.com/deltadrai/mistral-ocr-nextcloud",
         "priority": 40,

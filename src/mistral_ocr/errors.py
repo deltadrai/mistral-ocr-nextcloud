@@ -64,3 +64,20 @@ class MimeTypeNotAllowedError(MistralOcrError):
 
 class MissingApiKeyError(MistralOcrError):
     user_message = "No Mistral API key is configured. Set one in the admin settings."
+
+
+class SidecarLockedError(MistralOcrError):
+    """The sidecar could not be written because Nextcloud has it locked (HTTP 423).
+
+    The Text editor locks Markdown files it has open, with no TTL, so retrying
+    cannot succeed — the file has to be closed first.
+    """
+
+    user_message = (
+        "The Markdown result could not be saved because the file is locked — "
+        "it is probably open in the Nextcloud Text editor. Close it and run OCR again."
+    )
+
+
+class SidecarWriteError(MistralOcrError):
+    user_message = "The extracted text could not be saved next to the file. Check the folder permissions."

@@ -11,7 +11,7 @@ manually from the Files app, or on demand from any Task Processing consumer
 
 - Registers a **Task Processing provider** for the built-in task type
   `core:image2text:ocr` (input: Nextcloud file ID, output: Markdown text).
-- Adds a **file context-menu action** "Recognize text with Mistral OCR".
+- Adds a **file context-menu action** "OCR with Mistral".
 - Exposes a **Flow (workflow engine) operation** for "file created / updated /
   tag assigned → Mistral OCR".
 - Default output is a **sidecar file** `<original-name>.md` in the same folder.
@@ -20,17 +20,24 @@ manually from the Files app, or on demand from any Task Processing consumer
 
 Paste this into your coding agent (Claude Code, Copilot, Cursor, …) to install and configure the app on a Nextcloud instance:
 
-> Install the **Mistral OCR** Nextcloud ExApp (app id `mistral_ocr`, Docker image
-> `ghcr.io/deltadrai/mistral-ocr-nextcloud:latest`, repo `deltadrai/mistral-ocr-nextcloud`)
-> on this Nextcloud 30–35 instance:
-> 1. Make sure the **AppAPI** app is enabled and a deploy daemon is configured
->    (HaRP on NC 32+, or the Docker Socket Proxy).
-> 2. Register the ExApp from the instance's `occ`:
->    `occ app_api:app:register mistral_ocr --info-xml https://raw.githubusercontent.com/deltadrai/mistral-ocr-nextcloud/main/appinfo/info.xml --docker-hub ghcr.io/deltadrai/mistral-ocr-nextcloud:latest`
->    (add `--harp-url https://<your-harp-host>` when using HaRP).
-> 3. Enable it under **Apps → AppAPI → Mistral OCR**.
-> 4. In the app's admin settings, set the **Mistral API key** (from
->    <https://console.mistral.ai>), base URL, model and limits, then click
+> Install the **Mistral OCR** Nextcloud ExApp (app id `mistral_ocr`, image
+> `ghcr.io/deltadrai/mistral-ocr-nextcloud`, repo `deltadrai/mistral-ocr-nextcloud`)
+> on this Nextcloud 30–35 instance. The registry, image and tag are read from
+> `info.xml`; there is no image flag on the register command.
+> 1. Make sure **AppAPI** is enabled and a deploy daemon is registered — check
+>    with `occ app_api:daemon:list`. If none exists, register one (HaRP on
+>    NC 32+, or a local Docker socket / Docker Socket Proxy);
+>    see *Installation & registration* below.
+> 2. Register the ExApp against that daemon:
+>    `occ app_api:app:register mistral_ocr <daemon-name> --info-xml https://raw.githubusercontent.com/deltadrai/mistral-ocr-nextcloud/main/appinfo/info.xml --wait-finish`
+> 3. Enable it under **Settings → Administration → AppAPI** (the *External Apps*
+>    list), or with `occ app_api:app:enable mistral_ocr`.
+> 4. Set the **Mistral API key** (from <https://console.mistral.ai>) on the app's
+>    own page — `https://<your-nextcloud>/apps/app_api/proxy/mistral_ocr/admin`
+>    (administrators only; AppAPI has no menu entry for it) — or with
+>    `occ app_api:app:config:set mistral_ocr mistral_ocr_api_key --value <key> --sensitive=1`.
+>    Base URL, model and limits can be set there or under
+>    **Settings → Administration → ExApps Settings**. Then click
 >    **"Test API key & model"** to validate the configuration.
 
 ## Architecture
@@ -69,37 +76,64 @@ with your DPO before enabling automatic OCR on personal data.
 
 ## Installation & registration
 
+There is no flag for the image: `occ app_api:app:register` takes the app id and
+the **name of an already-registered deploy daemon**, and reads registry, image
+and tag from `<docker-install>` in `info.xml`. So register a daemon first.
+
 ```bash
-# Build and push the image (or use a prebuilt one)
-make docker-build docker-push   # ghcr.io/deltadrai/mistral-ocr-nextcloud:latest
+# 1. Register a deploy daemon (once per instance).
+#
+#    HaRP — the supported path on Nextcloud 32+:
+occ app_api:daemon:register harp "HaRP" docker-install http \
+  appapi-harp:8780 "https://your-nextcloud.example.com" \
+  --harp --harp_frp_address appapi-harp:8782 \
+  --harp_shared_key '<at least 12 chars>' --set-default
+#
+#    or a local Docker socket / Docker Socket Proxy:
+occ app_api:daemon:register local_docker "Local Docker" docker-install http \
+  /var/run/docker.sock "https://your-nextcloud.example.com" \
+  --net nextcloud --set-default
 
-# Register the ExApp with AppAPI (HaRP)
-occ app_api:app:register mistral_ocr \
+# 2. Register the ExApp against that daemon.
+occ app_api:app:register mistral_ocr local_docker \
   --info-xml https://raw.githubusercontent.com/deltadrai/mistral-ocr-nextcloud/main/appinfo/info.xml \
-  --docker-hub ghcr.io/deltadrai/mistral-ocr-nextcloud:latest \
-  --harp-url https://your-harp.example.com
-
-# Or with Docker Socket Proxy
-occ app_api:app:register mistral_ocr \
-  --info-xml appinfo/info.xml \
-  --docker-hub ghcr.io/deltadrai/mistral-ocr-nextcloud:latest
+  --wait-finish
 ```
+
+`--info-xml` accepts a URL or a local absolute path, so pointing it at
+`appinfo/info.xml` inside the instance works too. `occ app_api:daemon:list` and
+`occ app_api:app:list` show what is registered.
 
 If no Deploy Daemon is configured, registration fails with a clear message from
 AppAPI — install HaRP or the Docker Socket Proxy first.
 
 `appinfo/info.xml` pins `<image-tag>` to the released version (the app store
-rejects floating tags). `:latest` tracks `main`; for production pin the release
-tag explicitly, e.g.
-`--docker-hub ghcr.io/deltadrai/mistral-ocr-nextcloud:0.1.18`.
+rejects floating tags), so registration always deploys `0.1.18`. CI also pushes
+`:latest` (tracking `main`) and `:sha-<commit>`; to deploy those instead, either
+edit `<image-tag>` or point the daemon's registry mapping at a local build:
+
+```bash
+occ app_api:daemon:registry:add local_docker --registry-from ghcr.io --registry-to local
+```
 
 After registration:
 
-1. Enable the app in **Apps → AppAPI → Mistral OCR** (`PUT /enabled` runs
-   automatically; it registers the Task Processing provider and starts the
-   worker).
-2. Open the app's admin page (`/admin`) or call `POST /api/v1/admin/settings`
-   and set the **API key**, base URL, model and limits.
+1. Enable the app under **Settings → Administration → AppAPI** (the *External
+   Apps* list). Enabling calls `PUT /enabled`, which registers the Task
+   Processing provider, the Files action and the settings form.
+2. Open the app's own settings page and set the **API key**:
+
+   ```
+   https://<your-nextcloud>/apps/app_api/proxy/mistral_ocr/admin
+   ```
+
+   AppAPI serves every ExApp page through its proxy — there is no
+   `/exapps/<id>/…` address to browse to, and the AppAPI admin UI does not link
+   to an ExApp's page, so this URL is the only way in. It is restricted to
+   administrators (the `^/admin$` route declares `access_level` `ADMIN`).
+   Everything except the key can also be set from **Settings → Administration →
+   ExApps Settings** (the declarative form titled "Mistral OCR"), or via
+   `POST /api/v1/admin/settings`.
 3. Click **"Test API key & model"** — validates the key and that the configured
    model is available to it.
 
@@ -108,9 +142,14 @@ After registration:
 - **Assistant / Task Processing consumers:** once the provider is registered,
   `core:image2text:ocr` tasks are routed to this app automatically. The
   extracted Markdown is returned as the task output.
-- **Files app:** right-click a PDF/image → **"Recognize text with Mistral OCR"**.
-  A `<name>.md` sidecar appears next to the file (collisions are handled by
-  Nextcloud file versioning).
+- **Files app:** right-click a PDF/image → **"OCR with Mistral"**.
+  A `<name>.md` sidecar appears next to the file. Running it again overwrites
+  that sidecar and Nextcloud keeps the previous text as a file version.
+  If the `.md` is currently locked — typically because it is open in the
+  Nextcloud Text editor — the write is refused with HTTP 423 and the job fails
+  with "*The Markdown result could not be saved because the file is locked…*".
+  Text locks carry no expiry, so close the file and run OCR again rather than
+  waiting for a retry.
 - **Workflow engine (Flow):** create a flow with trigger *File created* /
   *File updated* / *Tag assigned* and the operation provided by this app
   (per-flow options: output mode override, page range, tags on success/failure).

@@ -19,6 +19,8 @@ from .errors import (
     MimeTypeNotAllowedError,
     MissingApiKeyError,
     MistralOcrError,
+    SidecarLockedError,
+    SidecarWriteError,
 )
 from .fingerprints import FingerprintStore, MemoryFingerprintStore
 from .jobs import TRIGGER_FLOW, OcrJob
@@ -141,7 +143,12 @@ class OcrService:
         parent = os.path.dirname(_node_user_path(node) or f"/{name}")
         sidecar_name = f"{os.path.splitext(name)[0]}.md"
         target = f"{parent.rstrip('/')}/{sidecar_name}" if parent else f"/{sidecar_name}"
-        await self._nc.files.upload(target, result.markdown.encode("utf-8"))
+        try:
+            await self._nc.files.upload(target, result.markdown.encode("utf-8"))
+        except Exception as exc:  # noqa: BLE001 - mapped to a typed, user-facing error
+            if _is_locked_error(exc):
+                raise SidecarLockedError(f"Cannot write {target}: {exc}") from exc
+            raise SidecarWriteError(f"Cannot write {target}: {exc}") from exc
         logger.info("Wrote sidecar %s for file %s", target, getattr(node, "file_id", "?"))
         return target
 
@@ -202,3 +209,16 @@ def json_dumps_safe(payload: dict[str, typing.Any]) -> str:
     import json
 
     return json.dumps(payload, default=str)
+
+
+def _is_locked_error(exc: Exception) -> bool:
+    """True when Nextcloud refused the write because the target file is locked.
+
+    A WebDAV PUT onto a locked file answers 423 with ``Sabre\\DAV\\Exception\\Locked``;
+    nc_py_api renders that as ``[423] Locked <upload: ...>``. Detected by shape rather
+    than by importing the SDK, so this module stays testable with fakes.
+    """
+    if getattr(exc, "status_code", None) == 423:
+        return True
+    text = str(exc).lower()
+    return "[423]" in text or "locked" in text
