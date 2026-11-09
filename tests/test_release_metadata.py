@@ -23,6 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 INFO_XML = REPO_ROOT / "appinfo" / "info.xml"
 PACKAGE_JSON = REPO_ROOT / "package.json"
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
+CI_YML = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 VALIDATOR = REPO_ROOT / "scripts" / "validate_info_xml.py"
 BUMPER = REPO_ROOT / "scripts" / "bump_version.py"
 VERSION_FILES = ("appinfo/info.xml", "package.json", "src/mistral_ocr/__init__.py", "CHANGELOG.md")
@@ -68,6 +69,25 @@ def test_changelog_documents_the_current_version() -> None:
     changelog = CHANGELOG.read_text(encoding="utf-8")
     assert re.search(rf"^## \[{re.escape(__version__)}\]", changelog, flags=re.MULTILINE), (
         f"CHANGELOG.md has no '## [{__version__}]' section"
+    )
+
+
+def test_released_image_tag_is_only_pushed_for_tags() -> None:
+    """A branch push must not overwrite the image that info.xml pins.
+
+    CI tags the image with <version>. If that tag were also pushed for main, merging
+    a commit would replace the released artifact while the app store still points at
+    the old digest — the exact thing <image-tag> pinning is supposed to prevent.
+    """
+    lines = [
+        line
+        for line in CI_YML.read_text(encoding="utf-8").splitlines()
+        if "type=raw,value=${{ steps.version.outputs.version }}" in line
+    ]
+    assert lines, "the workflow no longer tags the image with <version>"
+    assert all("refs/tags/v" in line for line in lines), (
+        "the <version> image tag must be gated on a tag push (enable=...refs/tags/v...), "
+        "otherwise a push to main overwrites the released image"
     )
 
 

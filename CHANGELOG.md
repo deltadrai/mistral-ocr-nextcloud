@@ -24,6 +24,10 @@ first release with artifacts is `0.1.18`.
   now raises a typed `SidecarLockedError`, notifies the user to close the file,
   and leaves the file unmarked so the job can be retried. Other write failures
   report `SidecarWriteError` instead of the raw DAV message.
+- CI pushed the `<version>` image tag on every `main` push, so merging a commit
+  would have overwritten the released image that `info.xml` and the app store
+  pin. The version tag is now gated on `v*` tag pushes; `main` only moves
+  `:latest` and `:sha-<commit>`. Guarded by a test.
 - The documented file-action label was "Recognize text with Mistral OCR"; the
   app registers **"OCR with Mistral"**. Fixed in the README and in the app-store
   description.

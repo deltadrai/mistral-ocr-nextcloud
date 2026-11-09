@@ -125,10 +125,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE }}
-          # <version> is what appinfo/info.xml pins; :latest only tracks main, so
-          # tagging an older release never moves it backwards.
+          # A released image tag must be immutable: <version> is only pushed for a
+          # v* tag, never for a branch push. Otherwise merging to main would overwrite
+          # the image that info.xml and the app store pin. :latest tracks main only.
           tags: |
-            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
