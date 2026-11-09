@@ -11,13 +11,29 @@ first release with artifacts is `0.1.18`.
 
 ## [Unreleased]
 
+### Added
+
+- Admin settings are now a real Nextcloud screen: an admin-only **Mistral OCR**
+  entry in the top navigation opens AppAPI's embedded page with a bundled Vue
+  app (`@nextcloud/vue` components) rendered into it. It replaces both the
+  standalone `/admin` HTML page (which never worked — its script tag pointed at
+  an unmapped `/static/` path) and the declarative settings form, so every
+  setting, including the API key, lives in one place.
+- The settings page is translated; **German** ships in `js/src/l10n/de.json` and
+  is selected from the user's Nextcloud language. AppAPI's native
+  `<translations_folder>` path only works for archive installs, and a
+  Docker-only deploy never produces one, so the catalogues are bundled.
+
+### Changed
+
+- CI now verifies all three committed browser bundles (`js/files_action.js`,
+  `js/admin_page.js`, `css/admin.css`) instead of only the Files script.
+
 ### Fixed
 
 - The admin settings help text pointed at `/exapps/mistral_ocr/admin`, which does
-  not exist. AppAPI 34 serves ExApp pages only through its proxy, so the app's
-  own settings page is at
-  `https://<nextcloud>/apps/app_api/proxy/mistral_ocr/admin` (administrators
-  only). There is no menu entry for it, which is what made it undiscoverable.
+  not exist. AppAPI 34 serves ExApp pages only through its proxy; the settings
+  UI now lives behind an admin-only top-menu entry instead of a raw URL.
 - Re-OCR'ing a file whose sidecar Markdown is locked — typically because it is
   open in the Nextcloud Text editor, which locks `.md` files with no expiry —
   failed with a raw `[423] Locked <upload: …>` WebDAV error and no guidance. It

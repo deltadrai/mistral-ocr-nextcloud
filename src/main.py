@@ -7,10 +7,11 @@ module exposes:
 - ``GET  /api/v1/status``                 health/status for the AppAPI admin UI
 - ``GET|POST /api/v1/admin/settings``     admin settings (API key stored encrypted)
 - ``POST /api/v1/admin/test-connection``  "Test API key & model" setup check
+- admin settings page: a top-menu entry (``Mistral OCR``, admins only) that renders
+  the bundled Vue app inside AppAPI's embedded template
 - ``POST /api/v1/ocr``                    manual trigger from the Files context menu
 - ``POST /api/v1/flow/event``             workflow engine (Flow) event endpoint
 - ``GET  /api/v1/jobs``                   job list (admin/debug)
-- ``GET  /admin``                         minimal admin settings page
 """
 
 from __future__ import annotations
@@ -27,11 +28,6 @@ from pydantic import BaseModel, Field
 
 from .mistral_ocr import __version__
 from .mistral_ocr.config import (
-    DEFAULT_BASE_URL,
-    DEFAULT_MAX_FILE_SIZE_MB,
-    DEFAULT_MAX_PAGES,
-    DEFAULT_MODEL,
-    DEFAULT_TIMEOUT,
     AppApiSettingsStore,
     AppSettings,
     MemorySettingsStore,
@@ -55,10 +51,10 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 logger = logging.getLogger("mistral_ocr.main")
 
 APP_ID = "mistral_ocr"
-# Browser path of this app's own settings page, relative to the Nextcloud web root.
-# AppAPI serves ExApp pages through its proxy; there is no /exapps/<id>/ route an
-# admin can browse to, and the AppAPI admin UI has no link to an ExApp's page.
-ADMIN_PAGE_PATH = "apps/app_api/proxy/mistral_ocr/admin"
+# Name of the admin-only top-menu entry. AppAPI renders it at
+# <root>/apps/app_api/embedded/mistral_ocr/<MENU_NAME> and injects the script and
+# stylesheet registered for ("top_menu", MENU_NAME) into its own empty template.
+MENU_NAME = "admin"
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "js")
 IMG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img")
 
@@ -124,90 +120,6 @@ def get_runner() -> JobRunner:
 
 
 FILE_ACTION_NAME = "mistral_ocr_recognize_text"
-SETTINGS_FORM_ID = "mistral_ocr_admin"
-
-
-def build_settings_form() -> dict[str, typing.Any]:
-    """Nextcloud admin settings form (declarative settings).
-
-    Field ids are the ExApp appconfig keys (see config.SETTINGS_FIELDS), so what the
-    admin saves in Nextcloud is exactly what the app reads.
-    """
-    return {
-        "id": SETTINGS_FORM_ID,
-        "section_type": "admin",
-        "section_id": "declarative_settings",
-        "title": "Mistral OCR",
-        "description": (
-            "Send files and images to the Mistral OCR API and store the result as Markdown. "
-            "Everything below works from this form. The API key is the exception: AppAPI stores "
-            "declarative sensitive fields encrypted without marking them sensitive, so this app "
-            "cannot read the key back. Set it once either on the app's own settings page — "
-            f"{ADMIN_PAGE_PATH} under your Nextcloud address, administrators only — or on the "
-            "command line with: occ app_api:app:config:set mistral_ocr mistral_ocr_api_key "
-            "--value <key> --sensitive=1"
-        ),
-        "doc_url": "https://github.com/deltadrai/mistral-ocr-nextcloud",
-        "priority": 40,
-        "fields": [
-            {
-                "id": "mistral_ocr_base_url",
-                "title": "API base URL",
-                "type": "url",
-                "default": DEFAULT_BASE_URL,
-                "placeholder": DEFAULT_BASE_URL,
-                "description": "Use https://api.eu.mistral.ai for EU data residency.",
-            },
-            {
-                "id": "mistral_ocr_model",
-                "title": "OCR model",
-                "type": "text",
-                "default": DEFAULT_MODEL,
-                "placeholder": DEFAULT_MODEL,
-            },
-            {
-                "id": "mistral_ocr_max_file_size_mb",
-                "title": "Maximum file size (MB)",
-                "type": "number",
-                "default": DEFAULT_MAX_FILE_SIZE_MB,
-            },
-            {
-                "id": "mistral_ocr_max_pages",
-                "title": "Maximum pages per document",
-                "type": "number",
-                "default": DEFAULT_MAX_PAGES,
-            },
-            {
-                "id": "mistral_ocr_default_output_mode",
-                "title": "Where the result goes",
-                "type": "select",
-                "default": "sidecar",
-                "options": [
-                    {"name": "Markdown file next to the source", "value": "sidecar"},
-                    {"name": "File description", "value": "description"},
-                    {"name": "Task result only", "value": "task_result"},
-                ],
-            },
-            {
-                "id": "mistral_ocr_include_image_base64",
-                "title": "Include page images in the result",
-                "type": "checkbox",
-                "default": False,
-            },
-            {
-                "id": "mistral_ocr_timeout_seconds",
-                "title": "Request timeout (seconds)",
-                "type": "number",
-                "default": int(DEFAULT_TIMEOUT),
-            },
-            {
-                "id": "mistral_ocr_notify_on_success",
-                "title": "Send a notification when OCR finishes",
-                "type": "checkbox",
-                "default": False,
-            },
-        ],
-    }
 
 
 async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
@@ -224,13 +136,25 @@ async def enabled_handler(enabled: bool, nc: AsyncNextcloudApp) -> str:
             # ("image/png".includes("image/")); "file" never matches a real file mime.
             mime="image/,application/pdf",
         )
-        await nc.ui.settings.register_form(build_settings_form())
+        await nc.ui.top_menu.register(
+            MENU_NAME,
+            "Mistral OCR",
+            icon="img/app.svg",
+            # Admins only: the page exposes the API key form and instance-wide limits.
+            admin_required=True,
+        )
+        # Registered paths carry no extension; AppAPI appends .js/.css when it rewrites
+        # the script/style tags of the embedded page to the proxy URLs.
+        await nc.ui.resources.set_script("top_menu", MENU_NAME, "js/admin_page")
+        await nc.ui.resources.set_style("top_menu", MENU_NAME, "css/admin")
         # AppAPI injects this into the Files page as a classic script (bundled IIFE).
         await nc.ui.resources.set_script("files", "files_action", "js/files_action")
         await get_worker().start()
         return ""
     await nc.ui.files_dropdown_menu.unregister(FILE_ACTION_NAME)
-    await nc.ui.settings.unregister_form(SETTINGS_FORM_ID)
+    await nc.ui.top_menu.unregister(MENU_NAME)
+    await nc.ui.resources.delete_script("top_menu", MENU_NAME, "js/admin_page")
+    await nc.ui.resources.delete_style("top_menu", MENU_NAME, "css/admin")
     await nc.ui.resources.delete_script("files", "files_action", "js/files_action")
     await unregister_provider(nc)
     await get_worker().stop()
@@ -394,14 +318,6 @@ async def list_jobs(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)], m
         user = await nc.user
         jobs = [j for j in jobs if j.user_id == user]
     return {"jobs": [j.to_dict() for j in jobs]}
-
-
-@app.get("/admin")
-async def admin_page():
-    index = os.path.join(STATIC_DIR, "admin.html")
-    if os.path.exists(index):
-        return FileResponse(index)
-    return JSONResponse({"detail": "admin page not found"}, status_code=404)
 
 
 @app.get("/js/files_action.js")

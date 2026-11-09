@@ -1,0 +1,82 @@
+/* Layout for the ExApp settings page. Component styling comes from @nextcloud/vue;
+   only spacing and the two-column rows are ours. Uses Nextcloud CSS variables so
+   dark mode and theming follow the server. */
+
+.mistral-ocr-settings {
+	max-width: 760px;
+	margin: 24px auto 48px;
+	padding: 8px 24px 24px;
+	/* The embedded template gives us a bare <div id="content"> on top of the
+	   server's gradient background; Nextcloud's own settings screens sit on a
+	   white panel, so provide one. */
+	background: var(--color-main-background);
+	border-radius: var(--border-radius-large, 8px);
+	box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+.mistral-ocr-settings__head {
+	padding: 16px 0 8px;
+}
+
+.mistral-ocr-settings__head h2 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.mistral-ocr-settings__intro {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.mistral-ocr-settings__field,
+.mistral-ocr-settings__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+/* The key field and its "configured" badge sit side by side on wide screens. */
+.mistral-ocr-settings__field > :first-child {
+	flex: 1 1 320px;
+}
+
+.mistral-ocr-settings__badge {
+	flex: 0 1 auto;
+	margin: 0 !important;
+	align-self: center;
+}
+
+/* vue-select sizes itself to its content and sits inline, which pulled it out of
+   the section's vertical flow; make it behave like the other fields. */
+.mistral-ocr-settings .nc-select {
+	width: 100%;
+}
+
+.mistral-ocr-settings__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.mistral-ocr-settings__row > * {
+	flex: 1 1 160px;
+}
+
+.mistral-ocr-settings__footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid var(--color-border);
+}
+
+.mistral-ocr-settings__dirty {
+	margin-right: auto;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}

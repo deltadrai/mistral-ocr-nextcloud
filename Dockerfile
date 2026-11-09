@@ -30,6 +30,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src/ /app/src/
 COPY js/ /app/js/
+COPY css/ /app/css/
 COPY img/ /app/img/
 COPY appinfo/ /app/appinfo/
 COPY LICENSE /app/LICENSE

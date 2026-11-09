@@ -59,10 +59,11 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      # AppAPI injects the Files-page script as a classic script, so js/files_action.js is a
-      # committed bundle. Fail if it no longer matches its source.
+      # AppAPI injects the Files-page script and the settings-page bundle as classic
+      # scripts/styles, so js/files_action.js, js/admin_page.js and css/admin.css are
+      # committed. Fail if any of them no longer matches its source.
       - run: npm run build
-      - run: git diff --exit-code js/files_action.js
+      - run: git diff --exit-code js/files_action.js js/admin_page.js css/admin.css
 
   docker:
     runs-on: ubuntu-latest

@@ -58,18 +58,20 @@ https://github.com/deltadrai/mistral-ocr-nextcloud]]></description>
                 <access_level>ADMIN</access_level>
             </route>
             <route>
-                <url>^/admin$</url>
+                <!-- Files-page script and the settings-page bundle, both injected
+                     through AppAPI's ui/script and ui/style APIs -->
+                <url>^/js/.*$</url>
+                <verb>GET</verb>
+                <access_level>USER</access_level>
+            </route>
+            <route>
+                <!-- Stylesheet of the admin-only embedded settings page -->
+                <url>^/css/.*$</url>
                 <verb>GET</verb>
                 <access_level>ADMIN</access_level>
             </route>
             <route>
                 <url>^/img/.*$</url>
-                <verb>GET</verb>
-                <access_level>USER</access_level>
-            </route>
-            <route>
-                <!-- Files-page script injected through AppAPI's ui/script API -->
-                <url>^/js/.*$</url>
                 <verb>GET</verb>
                 <access_level>USER</access_level>
             </route>

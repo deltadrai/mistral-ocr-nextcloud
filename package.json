@@ -2,14 +2,19 @@
   "name": "mistral-ocr-nextcloud",
   "version": "0.1.18",
   "private": true,
-  "description": "Build tooling for the ExApp's Files-page script (AppAPI injects classic scripts).",
+  "description": "Build tooling for the ExApp's browser bundles. AppAPI injects them as classic scripts/styles, so the built files are committed.",
   "scripts": {
-    "build": "esbuild js/src/files_action.js --bundle --format=iife --target=es2020 --minify --outfile=js/files_action.js",
-    "check": "npm run build && git diff --exit-code js/files_action.js"
+    "build": "npm run build:files && npm run build:admin",
+    "build:files": "esbuild js/src/files_action.js --bundle --format=iife --target=es2020 --minify --outfile=js/files_action.js",
+    "build:admin": "esbuild js/src/admin_page.js --bundle --format=iife --target=es2020 --minify --alias:vue=vue/dist/vue.esm-browser.prod.js --outfile=js/admin_page.js && mkdir -p css && mv js/admin_page.css css/admin.css",
+    "check": "npm run build && git diff --exit-code js/files_action.js js/admin_page.js css/admin.css"
   },
   "devDependencies": {
+    "@nextcloud/l10n": "^3.4.1",
     "@nextcloud/router": "^3.2.0",
+    "@nextcloud/vue": "^9.14.1",
     "esbuild": "0.25.10",
-    "toastify-js": "^1.12.0"
+    "toastify-js": "^1.12.0",
+    "vue": "^3.5.45"
   }
 }

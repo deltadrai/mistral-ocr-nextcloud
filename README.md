@@ -33,12 +33,10 @@ Paste this into your coding agent (Claude Code, Copilot, Cursor, …) to install
 > 3. Enable it under **Settings → Administration → AppAPI** (the *External Apps*
 >    list), or with `occ app_api:app:enable mistral_ocr`.
 > 4. Set the **Mistral API key** (from <https://console.mistral.ai>) on the app's
->    own page — `https://<your-nextcloud>/apps/app_api/proxy/mistral_ocr/admin`
->    (administrators only; AppAPI has no menu entry for it) — or with
+>    settings page: open the **Mistral OCR** entry in the top navigation
+>    (administrators only), or run
 >    `occ app_api:app:config:set mistral_ocr mistral_ocr_api_key --value <key> --sensitive=1`.
->    Base URL, model and limits can be set there or under
->    **Settings → Administration → ExApps Settings**. Then click
->    **"Test API key & model"** to validate the configuration.
+>    Then click **"Test connection"** to validate the key and the model.
 
 ## Architecture
 
@@ -120,22 +118,17 @@ After registration:
 
 1. Enable the app under **Settings → Administration → AppAPI** (the *External
    Apps* list). Enabling calls `PUT /enabled`, which registers the Task
-   Processing provider, the Files action and the settings form.
-2. Open the app's own settings page and set the **API key**:
-
-   ```
-   https://<your-nextcloud>/apps/app_api/proxy/mistral_ocr/admin
-   ```
-
-   AppAPI serves every ExApp page through its proxy — there is no
-   `/exapps/<id>/…` address to browse to, and the AppAPI admin UI does not link
-   to an ExApp's page, so this URL is the only way in. It is restricted to
-   administrators (the `^/admin$` route declares `access_level` `ADMIN`).
-   Everything except the key can also be set from **Settings → Administration →
-   ExApps Settings** (the declarative form titled "Mistral OCR"), or via
+   Processing provider, the Files action and the admin-only top-menu entry.
+2. Open **Mistral OCR** in the top navigation (administrators only) and set the
+   **API key**. That page is AppAPI's *embedded* template with this app's bundled
+   Vue app rendered into it — there is no standalone URL to bookmark, and
+   non-admins get a 404. The same values can be posted to
    `POST /api/v1/admin/settings`.
-3. Click **"Test API key & model"** — validates the key and that the configured
-   model is available to it.
+3. Click **"Test connection"** — validates the key and that the configured model
+   is available to it.
+
+The settings page is translated; German ships in `js/src/l10n/de.json` and is
+selected from the user's Nextcloud language.
 
 ## Usage
 
@@ -212,7 +205,7 @@ make test       # pytest (Mistral client mocked, no network)
 make lint       # ruff check + format
 make validate   # appinfo/info.xml against the Nextcloud App Store schema
 make check      # everything CI runs: lint, tests, manifest, JS bundle
-make js-build   # rebundle js/src/files_action.js -> js/files_action.js
+make js-build   # rebundle js/files_action.js, js/admin_page.js and css/admin.css
 make docker-build
 make smoke      # run the image and probe /api/v1/health
 ```
