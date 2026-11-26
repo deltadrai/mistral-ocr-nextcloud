@@ -164,14 +164,43 @@ class OcrService:
         except Exception as exc:  # noqa: BLE001 - experimental output mode, must not fail the job
             logger.warning("Could not append description to file %s: %s", node.file_id, exc)
 
+    def _file_link(self, node: typing.Any) -> str:
+        """Absolute URL to the file in the Files app, for the notification's ``link``.
+
+        The AppAPI notification endpoint requires an absolute URL. The base URL comes
+        from ``nc.cfg.endpoint`` (nc_py_api's ``AppConfig``); read defensively so the
+        service keeps working with fakes and older SDK versions — without it, the
+        notification is simply sent without a link.
+        """
+        file_id = getattr(node, "file_id", None)
+        endpoint = getattr(getattr(self._nc, "cfg", None), "endpoint", "")
+        if not file_id or not endpoint:
+            return ""
+        return f"{endpoint}/index.php/apps/files/?fileid={file_id}"
+
     async def _notify_success(self, job: OcrJob, node: typing.Any, sidecar_path: str | None) -> None:
-        subject = "Mistral OCR finished"
-        message = f"Text was extracted from {getattr(node, 'name', 'file')}"
-        if sidecar_path:
-            message += f" and saved as {sidecar_path}"
+        name = getattr(node, "name", "file") or "file"
+        path = _node_user_path(node) or f"/{name}"
+        link = self._file_link(node)
+        # Rich subject params: the notifications app renders ``{file}`` as a styled,
+        # clickable file reference (see the AppAPI notifications API docs). ``link``
+        # at subject_params level makes the whole notification open the file.
+        file_param = {
+            "type": "file",
+            "id": str(getattr(node, "file_id", "") or ""),
+            "name": name,
+            "path": path,
+        }
+        if link:
+            file_param["link"] = link
         try:
             await self._nc.set_user(job.user_id)
-            await self._nc.notifications.create(subject=subject, message=message)
+            await self._nc.notifications.create(
+                subject="OCR finished: {file}",
+                message=f"Text was extracted from {name}" + (f" and saved as {sidecar_path}" if sidecar_path else ""),
+                subject_params={"file": file_param},
+                link=link,
+            )
         except Exception as exc:  # noqa: BLE001
             logger.warning("Could not send success notification: %s", exc)
 

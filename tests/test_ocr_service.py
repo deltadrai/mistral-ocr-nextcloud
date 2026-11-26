@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from mistral_ocr.config import OUTPUT_MODE_SIDECAR, OUTPUT_MODE_TASK_RESULT, AppSettings
 from mistral_ocr.errors import (
     FileTooLargeError,
@@ -47,9 +49,11 @@ class FakeFiles:
 class FakeNotifications:
     def __init__(self):
         self.sent = []
+        self.last_kwargs = {}
 
     async def create(self, subject, message="", **kwargs):
         self.sent.append((subject, message))
+        self.last_kwargs = kwargs
         return "1"
 
 
@@ -59,6 +63,9 @@ class FakeNc:
         self.notifications = FakeNotifications()
         self.user = "alice"
         self.logs = []
+        # Stands in for nc_py_api's AppConfig; the service reads cfg.endpoint to
+        # build the absolute notification link.
+        self.cfg = SimpleNamespace(endpoint="https://nc.example.com")
 
     async def set_user(self, user_id):
         self.user = user_id
@@ -253,3 +260,16 @@ async def test_other_sidecar_failure_reports_a_write_error():
     assert isinstance(outcome.error, SidecarWriteError)
     assert isinstance(outcome.error, MistralOcrError)
     assert any("saved" in m.lower() for _, m in nc.notifications.sent)
+
+
+async def test_success_notification_includes_rich_file_and_clickable_link():
+    nc = FakeNc(FakeNode())
+    service, _ = make_service(nc, settings=AppSettings(notify_on_success=True))
+    await service.process(OcrJob(file_id=42, user_id="alice", trigger=TRIGGER_MANUAL))
+    kwargs = nc.notifications.last_kwargs
+    file_param = kwargs["subject_params"]["file"]
+    assert file_param["id"] == "42"
+    assert file_param["name"] == "scan.pdf"
+    assert file_param["path"] == "/docs/scan.pdf"
+    assert kwargs["link"] == "https://nc.example.com/index.php/apps/files/?fileid=42"
+    assert file_param["link"] == kwargs["link"]
